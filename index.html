@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MCQ Trainer</title>
+  <link rel="manifest" href="manifest.json" />
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 20px; background: #f4f4f4; }
+    input, button { width: 100%; margin: 6px 0; padding: 10px; font-size: 16px; }
+    .btn { background: #2196f3; color: white; border: none; cursor: pointer; margin-top: 8px; }
+    .card { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-top: 20px; }
+    .option-btn { background: #eee; border: none; padding: 10px; margin: 6px 0; border-radius: 4px; cursor: pointer; display: block; }
+    .correct { background-color: #4caf50 !important; color: white; }
+    .wrong { background-color: #f44336 !important; color: white; }
+  </style>
+</head>
+<body>
+
+<h2>Add New MCQ</h2>
+<input id="question" placeholder="Question">
+<input id="a" placeholder="Option A">
+<input id="b" placeholder="Option B">
+<input id="c" placeholder="Option C">
+<input id="d" placeholder="Option D">
+<input id="correct" placeholder="Correct Option (A/B/C/D)">
+<input id="tag" placeholder="Topic Tag (e.g. Optics)">
+<button class="btn" onclick="saveMCQ()">Save MCQ</button>
+<button class="btn" onclick="exportJSON()">⬇ Export</button>
+<input type="file" id="importFile" onchange="importJSON(this)" />
+<hr>
+<h2>Test Yourself</h2>
+<input id="filterTag" placeholder="Enter topic tag (or leave empty)">
+<button class="btn" onclick="startTest()">Start Test</button>
+<div id="testArea" class="card"></div>
+<hr>
+<h2>Manage MCQs</h2>
+<div id="mcqList" class="card"></div>
+
+<script>
+let questions = JSON.parse(localStorage.getItem('mcqs') || '[]');
+let testQuestions = [], current = 0, score = 0, editingIndex = -1;
+displayMCQs();
+
+function saveMCQ() {
+  const q = document.getElementById("question").value.trim();
+  const a = document.getElementById("a").value.trim();
+  const b = document.getElementById("b").value.trim();
+  const c = document.getElementById("c").value.trim();
+  const d = document.getElementById("d").value.trim();
+  const correct = document.getElementById("correct").value.trim().toUpperCase();
+  const tag = document.getElementById("tag").value.trim() || "General";
+
+  if (!q || !a || !b || !c || !d || !"ABCD".includes(correct)) {
+    alert("Fill all fields and use A/B/C/D only.");
+    return;
+  }
+
+  const mcq = { q, a, b, c, d, correct, tag };
+
+  if (editingIndex === -1) {
+    questions.push(mcq);
+  } else {
+    questions[editingIndex] = mcq;
+    editingIndex = -1;
+  }
+
+  localStorage.setItem("mcqs", JSON.stringify(questions));
+  displayMCQs();
+  resetForm();
+  alert("Saved!");
+}
+
+function resetForm() {
+  document.querySelectorAll("input").forEach(i => i.value = "");
+  editingIndex = -1;
+}
+
+function displayMCQs() {
+  const list = document.getElementById("mcqList");
+  list.innerHTML = questions.length === 0
+    ? "<p>No questions saved.</p>"
+    : questions.map((q, i) => `
+      <div style="margin-bottom:12px; border-bottom:1px solid #ccc; padding:10px;">
+        <b>Q${i + 1} [${q.tag}]:</b> ${q.q}<br>
+        A. ${q.a} | B. ${q.b} | C. ${q.c} | D. ${q.d} <br>
+        ✅ ${q.correct}<br>
+        <button class="btn" onclick="editMCQ(${i})">✏️ Edit</button>
+        <button class="btn" onclick="deleteMCQ(${i})">🗑️ Delete</button>
+      </div>
+    `).join("");
+}
+
+function editMCQ(i) {
+  const q = questions[i];
+  document.getElementById("question").value = q.q;
+  document.getElementById("a").value = q.a;
+  document.getElementById("b").value = q.b;
+  document.getElementById("c").value = q.c;
+  document.getElementById("d").value = q.d;
+  document.getElementById("correct").value = q.correct;
+  document.getElementById("tag").value = q.tag;
+  editingIndex = i;
+}
+
+function deleteMCQ(i) {
+  if (confirm("Delete this?")) {
+    questions.splice(i, 1);
+    localStorage.setItem("mcqs", JSON.stringify(questions));
+    displayMCQs();
+  }
+}
+
+function startTest() {
+  const filter = document.getElementById("filterTag").value.trim().toLowerCase();
+  testQuestions = filter
+    ? questions.filter(q => q.tag.toLowerCase().includes(filter))
+    : [...questions];
+
+  if (testQuestions.length === 0) {
+    document.getElementById("testArea").innerHTML = "No matching questions.";
+    return;
+  }
+
+  testQuestions.sort(() => Math.random() - 0.5);
+  current = 0;
+  score = 0;
+  showQuestion();
+}
+
+function showQuestion() {
+  const q = testQuestions[current];
+  document.getElementById("testArea").innerHTML = `
+    <h3>Q${current + 1} [${q.tag}]: ${q.q}</h3>
+    <button class="option-btn" onclick="checkAnswer(this, 'A')">A. ${q.a}</button>
+    <button class="option-btn" onclick="checkAnswer(this, 'B')">B. ${q.b}</button>
+    <button class="option-btn" onclick="checkAnswer(this, 'C')">C. ${q.c}</button>
+    <button class="option-btn" onclick="checkAnswer(this, 'D')">D. ${q.d}</button>
+  `;
+}
+
+function checkAnswer(btn, selected) {
+  const correct = testQuestions[current].correct;
+  document.querySelectorAll(".option-btn").forEach(b => b.disabled = true);
+
+  if (selected === correct) {
+    btn.classList.add("correct");
+    score++;
+  } else {
+    btn.classList.add("wrong");
+    document.querySelectorAll(".option-btn").forEach(b => {
+      if (b.textContent.startsWith(correct)) b.classList.add("correct");
+    });
+  }
+
+  setTimeout(() => {
+    current++;
+    current < testQuestions.length ? showQuestion() :
+      document.getElementById("testArea").innerHTML = `<h3>Done!</h3><p>Score: ${score} / ${testQuestions.length}</p>`;
+  }, 1000);
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(questions)], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "mcqs.json"; a.click(); URL.revokeObjectURL(url);
+}
+
+function importJSON(input) {
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (Array.isArray(data)) {
+        questions = data;
+        localStorage.setItem("mcqs", JSON.stringify(questions));
+        displayMCQs();
+        alert("Import successful!");
+      }
+    } catch (e) {
+      alert("Invalid file.");
+    }
+  };
+  reader.readAsText(file);
+}
+</script>
+</body>
+</html>
