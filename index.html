@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="manifest" href="manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(() => {
+      console.log('Service Worker Registered');
+    });
+  }
+</script>
+  <title>MCQ Trainer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input, textarea, button { width: 100%; margin: 8px 0; padding: 10px; }
+    .question-box { border: 1px solid #ccc; padding: 10px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>Add MCQ</h2>
+  <input id="question" placeholder="Enter the question">
+  <input id="a" placeholder="Option A">
+  <input id="b" placeholder="Option B">
+  <input id="c" placeholder="Option C">
+  <input id="d" placeholder="Option D">
+  <input id="correct" placeholder="Correct Option (A/B/C/D)">
+  <button onclick="saveMCQ()">Save MCQ</button>
+
+  <hr>
+  <h2>Test Yourself</h2>
+  <button onclick="startTest()">Start Test</button>
+  <div id="testArea" class="question-box"></div>
+
+  <script>
+    let questions = JSON.parse(localStorage.getItem('mcqs') || '[]');
+    let current = 0;
+
+    function saveMCQ() {
+      let q = document.getElementById("question").value;
+      let a = document.getElementById("a").value;
+      let b = document.getElementById("b").value;
+      let c = document.getElementById("c").value;
+      let d = document.getElementById("d").value;
+      let correct = document.getElementById("correct").value.toUpperCase();
+
+      if (!q || !a || !b || !c || !d || !['A', 'B', 'C', 'D'].includes(correct)) {
+        alert("Please fill all fields correctly.");
+        return;
+      }
+
+      questions.push({ q, a, b, c, d, correct });
+      localStorage.setItem('mcqs', JSON.stringify(questions));
+      alert("MCQ saved!");
+      document.querySelectorAll('input').forEach(i => i.value = "");
+    }
+
+    function startTest() {
+      current = 0;
+      if (questions.length === 0) {
+        document.getElementById("testArea").innerHTML = "No questions saved.";
+        return;
+      }
+      showQuestion();
+    }
+
+    function showQuestion() {
+      let q = questions[current];
+      document.getElementById("testArea").innerHTML = `
+        <b>Q${current + 1}: ${q.q}</b><br>
+        <button onclick="checkAnswer('A')">A. ${q.a}</button><br>
+        <button onclick="checkAnswer('B')">B. ${q.b}</button><br>
+        <button onclick="checkAnswer('C')">C. ${q.c}</button><br>
+        <button onclick="checkAnswer('D')">D. ${q.d}</button><br>
+      `;
+    }
+
+    function checkAnswer(selected) {
+      let correct = questions[current].correct;
+      alert(selected === correct ? "✅ Correct!" : `❌ Wrong. Correct: ${correct}`);
+      current++;
+      if (current < questions.length) {
+        showQuestion();
+      } else {
+        document.getElementById("testArea").innerHTML = "Test complete!";
+      }
+    }
+  </script>
+</body>
+</html>
