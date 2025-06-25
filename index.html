@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tester</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="manifest" href="manifest.json" />
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f0f0f0; }
+    header { background: #2196f3; padding: 15px; color: white; font-size: 20px; text-align: center; }
+    nav { display: flex; justify-content: space-around; background: #1976d2; flex-wrap: wrap; }
+    nav button {
+      flex: 1; padding: 10px; color: white; background: transparent; border: none;
+      font-size: 16px; cursor: pointer;
+    }
+    nav button.active { background: #1565c0; }
+    section { display: none; padding: 20px; }
+    section.active { display: block; }
+    .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    input, button, select { display: block; width: 100%; margin: 10px 0; padding: 10px; font-size: 16px; }
+    button { background: #2196f3; color: white; border: none; border-radius: 5px; }
+  </style>
+</head>
+<body>
+
+<header>Tester</header>
+<nav>
+  <button onclick="showTab('home')" class="active">🏠 Home</button>
+  <button onclick="showTab('add')">➕ Add MCQ</button>
+  <button onclick="showTab('test')">🧪 Test</button>
+  <button onclick="showTab('manage')">📋 Manage</button>
+  <button onclick="showTab('score')">📊 Score</button>
+  <button onclick="showTab('settings')">⚙️ Settings</button>
+</nav>
+
+<section id="home" class="active">
+  <div class="card">
+    <h2>Welcome to Tester</h2>
+    <p>This app lets you create, test, and manage your own MCQs!</p>
+  </div>
+</section>
+
+<section id="add">
+  <div class="card">
+    <h3>Add New MCQ</h3>
+    <input id="question" placeholder="Enter Question">
+    <input id="a" placeholder="Option A">
+    <input id="b" placeholder="Option B">
+    <input id="c" placeholder="Option C">
+    <input id="d" placeholder="Option D">
+    <input id="correct" placeholder="Correct Option (A/B/C/D)">
+    <input id="tag" placeholder="Topic Tag (e.g. Optics)">
+    <button onclick="saveMCQ()">Save MCQ</button>
+    <p id="saveStatus"></p>
+  </div>
+</section>
+
+<section id="test">
+  <div class="card">
+    <h3>Start Test</h3>
+    <label>Choose mode:</label>
+    <select id="mode">
+      <option value="shuffle">🔀 Shuffle All Questions</option>
+      <option value="topic">🎯 Choose Specific Topic</option>
+    </select>
+    <div id="topicSelector" style="display:none;">
+      <label>Select Topic:</label>
+      <select id="topicSelect"></select>
+    </div>
+    <button onclick="startTest()">Start</button>
+    <p id="testStatus"></p>
+  </div>
+</section>
+
+<section id="manage"><div class="card"><h3>Manage MCQs (Coming soon...)</h3></div></section>
+<section id="score"><div class="card"><h3>Score Tracker (Coming soon...)</h3></div></section>
+
+<section id="settings">
+  <div class="card">
+    <h3>Settings</h3>
+    <label>Timer per question (seconds):</label>
+    <input id="timerSetting" type="number" min="5" placeholder="e.g. 30">
+    <label>Number of MCQs per test:</label>
+    <input id="countSetting" type="number" min="1" placeholder="e.g. 10">
+    <button onclick="saveSettings()">Save Settings</button>
+    <p id="settingsStatus"></p>
+  </div>
+</section>
+
+<script>
+let mcqs = JSON.parse(localStorage.getItem("mcqs") || "[]");
+
+function showTab(tabId) {
+  document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+  document.getElementById(tabId).classList.add("active");
+  event.target.classList.add("active");
+  if (tabId === "test") prepareTopics();
+}
+
+function saveMCQ() {
+  const q = document.getElementById("question").value.trim();
+  const a = document.getElementById("a").value.trim();
+  const b = document.getElementById("b").value.trim();
+  const c = document.getElementById("c").value.trim();
+  const d = document.getElementById("d").value.trim();
+  const correct = document.getElementById("correct").value.trim().toUpperCase();
+  const tag = document.getElementById("tag").value.trim() || "General";
+
+  if (!q || !a || !b || !c || !d || !"ABCD".includes(correct)) {
+    document.getElementById("saveStatus").innerText = "Please fill all fields correctly.";
+    return;
+  }
+
+  mcqs.push({ q, a, b, c, d, correct, tag });
+  localStorage.setItem("mcqs", JSON.stringify(mcqs));
+  document.getElementById("saveStatus").innerText = "MCQ saved!";
+  document.querySelectorAll("#add input").forEach(input => input.value = "");
+}
+
+function saveSettings() {
+  const timer = parseInt(document.getElementById("timerSetting").value);
+  const count = parseInt(document.getElementById("countSetting").value);
+  if (timer < 5 || count < 1) {
+    document.getElementById("settingsStatus").innerText = "Enter valid numbers.";
+    return;
+  }
+  localStorage.setItem("settings", JSON.stringify({ timer, count }));
+  document.getElementById("settingsStatus").innerText = "Settings saved!";
+}
+
+document.getElementById("mode").addEventListener("change", function() {
+  document.getElementById("topicSelector").style.display = this.value === "topic" ? "block" : "none";
+});
+
+function prepareTopics() {
+  const topics = [...new Set(mcqs.map(m => m.tag))];
+  const select = document.getElementById("topicSelect");
+  select.innerHTML = topics.map(t => `<option value="${t}">${t}</option>`).join("");
+}
+
+function startTest() {
+  const mode = document.getElementById("mode").value;
+  const settings = JSON.parse(localStorage.getItem("settings") || "{}");
+  const count = settings.count || 10;
+
+  let selected = [...mcqs];
+  if (mode === "topic") {
+    const topic = document.getElementById("topicSelect").value;
+    selected = selected.filter(q => q.tag === topic);
+  }
+
+  if (selected.length === 0) {
+    document.getElementById("testStatus").innerText = "No questions found for this selection.";
+    return;
+  }
+
+  if (mode === "shuffle") {
+    selected = selected.sort(() => 0.5 - Math.random());
+  }
+
+  selected = selected.slice(0, count);
+  document.getElementById("testStatus").innerText = `Test will begin with ${selected.length} questions. (Coming soon...)`;
+}
+</script>
+
+</body>
+</html>
