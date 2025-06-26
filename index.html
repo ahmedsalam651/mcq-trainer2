@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tester</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+  <style>
+    body { margin: 0; font-family: Arial; background: #f4f4f4; }
+    header { background: #2196f3; color: white; padding: 1rem; text-align: center; }
+    nav { display: flex; background: #1976d2; justify-content: space-around; }
+    nav button { flex: 1; background: transparent; color: white; border: none; padding: 1rem; font-size: 16px; cursor: pointer; }
+    nav button.active { background: #1565c0; }
+    section { display: none; padding: 1rem; }
+    section.active { display: block; }
+    .card { background: white; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    input, select, button, textarea {
+      width: 100%; padding: 10px; margin-top: 10px;
+      font-size: 16px; border-radius: 5px; border: 1px solid #ccc;
+    }
+    button { background: #2196f3; color: white; border: none; }
+    .option { margin: 5px 0; padding: 10px; background: #e3f2fd; border-radius: 5px; cursor: pointer; }
+    .option.correct { background: #a5d6a7; }
+    .option.wrong { background: #ef9a9a; }
+    .mcq-item { border-bottom: 1px solid #ccc; padding: 10px 0; }
+  </style>
+</head>
+<body>
+<header>Tester</header>
+<nav>
+  <button onclick="switchTab('add')" class="active">➕ Add</button>
+  <button onclick="switchTab('settings')">⚙️ Settings</button>
+  <button onclick="switchTab('test')">🧪 Test</button>
+  <button onclick="switchTab('manage')">📋 Manage</button>
+  <button onclick="switchTab('score')">📊 Score</button>
+</nav>
+
+<section id="add" class="active">
+  <div class="card">
+    <h3>Add MCQ</h3>
+    <input id="q" placeholder="Question">
+    <input id="a" placeholder="Option A">
+    <input id="b" placeholder="Option B">
+    <input id="c" placeholder="Option C">
+    <input id="d" placeholder="Option D">
+    <input id="correct" placeholder="Correct (A/B/C/D)">
+    <input id="tag" placeholder="Topic/Tag">
+    <button onclick="saveMCQ()">Save</button>
+    <p id="status"></p>
+  </div>
+</section>
+
+<section id="settings">
+  <div class="card">
+    <h3>Settings</h3>
+    <input id="timerSetting" type="number" placeholder="Seconds per question">
+    <input id="mcqCountSetting" type="number" placeholder="How many questions per test">
+    <button onclick="saveSettings()">Save Settings</button>
+  </div>
+</section>
+
+<section id="test">
+  <div class="card" id="testStart">
+    <h3>Start Test</h3>
+    <select id="testMode" onchange="toggleTopic()">
+      <option value="shuffle">Shuffle All</option>
+      <option value="topic">By Topic</option>
+    </select>
+    <div id="topicArea" style="display:none;">
+      <select id="topicSelect"></select>
+    </div>
+    <button onclick="beginTest()">Start</button>
+  </div>
+  <div class="card" id="testArea" style="display:none;">
+    <div id="questionText"></div>
+    <div id="optionsArea"></div>
+    <div id="testTimer"></div>
+  </div>
+  <div class="card" id="testResult" style="display:none;">
+    <h3>Test Result</h3>
+    <p id="resultScore"></p>
+    <button onclick="location.reload()">Try Again</button>
+  </div>
+</section>
+
+<section id="manage">
+  <div class="card">
+    <h3>Manage MCQs</h3>
+    <div id="mcqList"></div>
+  </div>
+</section>
+
+<section id="score">
+  <div class="card">
+    <h3>Score History</h3>
+    <ul id="scoreHistoryList"></ul>
+  </div>
+</section>
+
+<script>
+let mcqs = JSON.parse(localStorage.getItem("mcqs") || "[]");
+let scores = JSON.parse(localStorage.getItem("scores") || "[]");
+let editIndex = -1;
+
+function switchTab(tab) {
+  document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
+  document.querySelectorAll("nav button").forEach(btn => btn.classList.remove("active"));
+  document.getElementById(tab).classList.add("active");
+  event.target.classList.add("active");
+  if (tab === "manage") renderManage();
+  if (tab === "score") renderScores();
+  if (tab === "test") loadTopics();
+}
+
+function saveMCQ() {
+  const q = document.getElementById("q").value;
+  const a = document.getElementById("a").value;
+  const b = document.getElementById("b").value;
+  const c = document.getElementById("c").value;
+  const d = document.getElementById("d").value;
+  const correct = document.getElementById("correct").value.toUpperCase();
+  const tag = document.getElementById("tag").value;
+  if (!"ABCD".includes(correct)) return alert("Correct answer must be A/B/C/D");
+
+  const mcq = { q, a, b, c, d, correct, tag };
+  if (editIndex >= 0) {
+    mcqs[editIndex] = mcq;
+    editIndex = -1;
+    document.getElementById("status").innerText = "MCQ updated!";
+  } else {
+    mcqs.push(mcq);
+    document.getElementById("status").innerText = "MCQ saved!";
+  }
+  localStorage.setItem("mcqs", JSON.stringify(mcqs));
+  document.querySelectorAll("#add input").forEach(i => i.value = "");
+}
+
+function saveSettings() {
+  const t = +document.getElementById("timerSetting").value;
+  const n = +document.getElementById("mcqCountSetting").value;
+  localStorage.setItem("settings", JSON.stringify({ timer: t, count: n }));
+}
+
+function loadTopics() {
+  const select = document.getElementById("topicSelect");
+  const tags = [...new Set(mcqs.map(m => m.tag))];
+  select.innerHTML = tags.map(t => `<option>${t}</option>`).join("");
+}
+
+function toggleTopic() {
+  const v = document.getElementById("testMode").value;
+  document.getElementById("topicArea").style.display = v === "topic" ? "block" : "none";
+}
+
+function beginTest() {
+  const settings = JSON.parse(localStorage.getItem("settings") || "{}");
+  const time = settings.timer || 30;
+  const count = settings.count || 5;
+  const mode = document.getElementById("testMode").value;
+  let testSet = mode === "topic"
+    ? mcqs.filter(m => m.tag === document.getElementById("topicSelect").value)
+    : [...mcqs];
+  testSet = testSet.sort(() => 0.5 - Math.random()).slice(0, count);
+
+  document.getElementById("testStart").style.display = "none";
+  document.getElementById("testArea").style.display = "block";
+  runTest(testSet, time);
+}
+
+function runTest(set, sec) {
+  let current = 0, score = 0, timer;
+  function showNext() {
+    if (current >= set.length) {
+      document.getElementById("testArea").style.display = "none";
+      document.getElementById("testResult").style.display = "block";
+      document.getElementById("resultScore").innerText = `Score: ${score}/${set.length}`;
+      scores.push({ time: new Date().toLocaleString(), score: `${score}/${set.length}` });
+      localStorage.setItem("scores", JSON.stringify(scores));
+      return;
+    }
+    const q = set[current];
+    document.getElementById("questionText").innerText = q.q;
+    const optDiv = document.getElementById("optionsArea");
+    optDiv.innerHTML = "";
+    ["a", "b", "c", "d"].forEach(k => {
+      const div = document.createElement("div");
+      div.className = "option";
+      div.textContent = `${k.toUpperCase()}: ${q[k]}`;
+      div.onclick = () => {
+        clearInterval(timer);
+        if (k.toUpperCase() === q.correct) {
+          div.classList.add("correct");
+          score++;
+        } else div.classList.add("wrong");
+        setTimeout(() => { current++; showNext(); }, 500);
+      };
+      optDiv.appendChild(div);
+    });
+    let countdown = sec;
+    document.getElementById("testTimer").innerText = `Time: ${countdown}s`;
+    clearInterval(timer);
+    timer = setInterval(() => {
+      countdown--;
+      document.getElementById("testTimer").innerText = `Time: ${countdown}s`;
+      if (countdown <= 0) {
+        clearInterval(timer);
+        current++;
+        showNext();
+      }
+    }, 1000);
+  }
+  showNext();
+}
+
+function renderManage() {
+  const out = document.getElementById("mcqList");
+  out.innerHTML = mcqs.map((m, i) => `
+    <div><b>${m.q}</b><br>
+    A: ${m.a}<br>B: ${m.b}<br>C: ${m.c}<br>D: ${m.d}<br>
+    Correct: ${m.correct} | Topic: ${m.tag}<br>
+    <button onclick="editMCQ(${i})">✏️ Edit</button> 
+    <button onclick="delMCQ(${i})">🗑️ Delete</button></div><hr>`).join("");
+}
+function delMCQ(i) {
+  mcqs.splice(i, 1);
+  localStorage.setItem("mcqs", JSON.stringify(mcqs));
+  renderManage();
+}
+function editMCQ(i) {
+  const m = mcqs[i];
+  document.getElementById("q").value = m.q;
+  document.getElementById("a").value = m.a;
+  document.getElementById("b").value = m.b;
+  document.getElementById("c").value = m.c;
+  document.getElementById("d").value = m.d;
+  document.getElementById("correct").value = m.correct;
+  document.getElementById("tag").value = m.tag;
+  switchTab('add');
+  editIndex = i;
+}
+function renderScores() {
+  const out = document.getElementById("scoreHistoryList");
+  out.innerHTML = scores.map(s => `<li>${s.time}: ${s.score}</li>`).join("");
+}
+</script>
+</body>
+</html>
