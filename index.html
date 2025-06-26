@@ -1,0 +1,290 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tester</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body { font-family: sans-serif; margin: 0; background: #f0f0f0; }
+    nav { display: flex; justify-content: space-around; background: #6200ea; color: white; padding: 10px; flex-wrap: wrap; }
+    nav button { background: none; border: none; color: white; font-size: 16px; padding: 10px; cursor: pointer; }
+    section { display: none; padding: 20px; }
+    .card { background: white; max-width: 700px; margin: auto; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input, button, select { width: 100%; margin: 8px 0; padding: 10px; font-size: 16px; }
+    ul { list-style: none; padding: 0; }
+    li { margin-bottom: 10px; padding: 10px; background: #fff; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+  <nav>
+    <button onclick="switchTab('add')">➕ Add</button>
+    <button onclick="switchTab('settings')">⚙️ Settings</button>
+    <button onclick="switchTab('test')">🧪 Test</button>
+    <button onclick="switchTab('manage')">📋 Manage</button>
+    <button onclick="switchTab('score')">📊 Score</button>
+    <button onclick="switchTab('import')">📄 Import PDF</button>
+  </nav>
+
+  <section id="add">
+    <div class="card">
+      <h3>Add MCQ</h3>
+      <input id="q" placeholder="Question">
+      <input id="a" placeholder="Choice A">
+      <input id="b" placeholder="Choice B">
+      <input id="c" placeholder="Choice C">
+      <input id="d" placeholder="Choice D">
+      <input id="correct" placeholder="Correct Answer (A/B/C/D)">
+      <input id="tag" placeholder="Topic tag (optional)">
+      <button onclick="saveMCQ()">Save</button>
+      <p id="status"></p>
+    </div>
+  </section>
+
+  <section id="settings">
+    <div class="card">
+      <h3>⚙️ Settings</h3>
+      <label>Test duration in seconds:</label>
+      <input type="number" id="timer" value="60">
+      <label>Number of MCQs per test:</label>
+      <input type="number" id="numQs" value="5">
+      <button onclick="saveSettings()">Save Settings</button>
+    </div>
+  </section>
+
+  <section id="test">
+    <div class="card">
+      <h3>🧪 Test</h3>
+      <button onclick="startTestPrompt()">Start Test</button>
+    </div>
+    <div id="testArea" class="card" style="display:none">
+      <p id="questionText"></p>
+      <button onclick="answer('A')" id="btnA"></button>
+      <button onclick="answer('B')" id="btnB"></button>
+      <button onclick="answer('C')" id="btnC"></button>
+      <button onclick="answer('D')" id="btnD"></button>
+      <p id="testStatus"></p>
+    </div>
+  </section>
+
+  <section id="manage">
+    <div class="card">
+      <h3>📋 Manage MCQs</h3>
+      <div id="mcqList"></div>
+      <button style="background:#f44336;" onclick="deleteAllMCQs()">🗑️ Delete All MCQs</button>
+    </div>
+  </section>
+
+  <section id="score">
+    <div class="card">
+      <h3>📊 Score Tracker</h3>
+      <ul id="scoreHistoryList"></ul>
+    </div>
+  </section>
+
+  <section id="import">
+    <div class="card">
+      <h3>📄 Import PDF</h3>
+      <input type="file" id="pdfFile" accept=".pdf">
+      <button onclick="parsePDF()">Import</button>
+      <p id="pdfStatus"></p>
+      <p style="color:red">⚠️ Answers not included in PDF. Please edit after import.</p>
+    </div>
+  </section>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  <script>
+    let mcqs = JSON.parse(localStorage.getItem("mcqs") || "[]");
+    let scores = JSON.parse(localStorage.getItem("scores") || "[]");
+    let editIndex = -1;
+
+    function switchTab(id) {
+      document.querySelectorAll("section").forEach(s => s.style.display = "none");
+      document.getElementById(id).style.display = "block";
+      if (id === 'manage') renderManage();
+      if (id === 'score') renderScores();
+    }
+
+    function saveMCQ() {
+      const q = document.getElementById("q").value;
+      const a = document.getElementById("a").value;
+      const b = document.getElementById("b").value;
+      const c = document.getElementById("c").value;
+      const d = document.getElementById("d").value;
+      const correct = document.getElementById("correct").value.toUpperCase();
+      const tag = document.getElementById("tag").value;
+      if (!"ABCD".includes(correct)) return alert("Correct answer must be A/B/C/D");
+      if (editIndex >= 0) {
+        mcqs[editIndex] = { q, a, b, c, d, correct, tag };
+        editIndex = -1;
+        document.getElementById("status").innerText = "MCQ updated!";
+      } else {
+        mcqs.push({ q, a, b, c, d, correct, tag });
+        document.getElementById("status").innerText = "MCQ saved!";
+      }
+      localStorage.setItem("mcqs", JSON.stringify(mcqs));
+      document.querySelectorAll("#add input").forEach(i => i.value = "");
+    }
+
+    function renderManage() {
+      const list = mcqs.map((m, i) => `
+        <li>
+          ${m.q}<br>
+          A: ${m.a} B: ${m.b} C: ${m.c} D: ${m.d}<br>
+          ✅: ${m.correct} | 🏷️ ${m.tag}<br>
+          <button onclick="editMCQ(${i})">✏️ Edit</button>
+          <button onclick="deleteMCQ(${i})">🗑️ Delete</button>
+        </li>
+      `).join("");
+      document.getElementById("mcqList").innerHTML = "<ul>" + list + "</ul>";
+    }
+
+    function editMCQ(i) {
+      const m = mcqs[i];
+      document.getElementById("q").value = m.q;
+      document.getElementById("a").value = m.a;
+      document.getElementById("b").value = m.b;
+      document.getElementById("c").value = m.c;
+      document.getElementById("d").value = m.d;
+      document.getElementById("correct").value = m.correct;
+      document.getElementById("tag").value = m.tag;
+      editIndex = i;
+      switchTab("add");
+    }
+
+    function deleteMCQ(i) {
+      if (confirm("Delete this MCQ?")) {
+        mcqs.splice(i, 1);
+        localStorage.setItem("mcqs", JSON.stringify(mcqs));
+        renderManage();
+      }
+    }
+
+    function deleteAllMCQs() {
+      if (confirm("Delete all MCQs?")) {
+        mcqs = [];
+        localStorage.removeItem("mcqs");
+        renderManage();
+      }
+    }
+
+    function saveSettings() {
+      localStorage.setItem("timer", document.getElementById("timer").value);
+      localStorage.setItem("numQs", document.getElementById("numQs").value);
+      alert("Settings saved.");
+    }
+
+    function startTestPrompt() {
+      const shuffle = confirm("Shuffle questions?");
+      const topic = prompt("Enter a topic (or leave blank):");
+      const pool = mcqs.filter(m => !topic || m.tag === topic);
+      if (!pool.length) return alert("No matching MCQs.");
+      if (shuffle) pool.sort(() => Math.random() - 0.5);
+      const count = +localStorage.getItem("numQs") || 5;
+      runTest(pool.slice(0, count), +localStorage.getItem("timer") || 60);
+    }
+
+    let current = 0, testSet = [], score = 0, wrongIndexes = [];
+    function runTest(set, time) {
+      testSet = JSON.parse(JSON.stringify(set));
+      current = 0; score = 0; wrongIndexes = [];
+      document.getElementById("testArea").style.display = "block";
+      showNext();
+    }
+
+    function showNext() {
+      if (current >= testSet.length) {
+        document.getElementById("testStatus").innerText = `✅ ${score}/${testSet.length}`;
+        scores.push({
+          time: new Date().toLocaleString(),
+          correct: score,
+          set: testSet,
+          wrongIndexes
+        });
+        localStorage.setItem("scores", JSON.stringify(scores));
+        return;
+      }
+      const q = testSet[current];
+      document.getElementById("questionText").innerText = q.q;
+      ["A","B","C","D"].forEach(k => {
+        document.getElementById("btn" + k).innerText = q[k.toLowerCase()];
+      });
+    }
+
+    function answer(k) {
+      const q = testSet[current];
+      if (k === q.correct) score++;
+      else wrongIndexes.push(current);
+      current++; showNext();
+    }
+
+    function renderScores() {
+      const out = document.getElementById("scoreHistoryList");
+      out.innerHTML = scores.map((s, i) => {
+        const total = s.set.length;
+        const correct = s.correct;
+        const incorrect = total - correct;
+        const percent = Math.round((correct / total) * 100);
+        return `<li>
+          <b>${s.time}</b><br>
+          ✔️ ${correct} ❌ ${incorrect} 📊 ${percent}%<br>
+          <button onclick="retestIncorrect(${i})">🔁 Retest Incorrect</button>
+        </li>`;
+      }).join("");
+    }
+
+    function retestIncorrect(i) {
+      const s = scores[i];
+      const wrong = s.wrongIndexes.map(j => s.set[j]);
+      if (!wrong.length) return alert("No incorrect MCQs.");
+      runTest(wrong, +localStorage.getItem("timer") || 60);
+      switchTab("test");
+    }
+
+    function parsePDF() {
+      const file = document.getElementById("pdfFile").files[0];
+      if (!file) return alert("Choose a PDF file.");
+      const reader = new FileReader();
+      reader.onload = function () {
+        const typedarray = new Uint8Array(this.result);
+        pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+          let text = '';
+          let promises = [];
+          for (let i = 1; i <= pdf.numPages; i++) {
+            promises.push(pdf.getPage(i).then(p => p.getTextContent().then(tc => {
+              return tc.items.map(s => s.str).join(" ");
+            })));
+          }
+          Promise.all(promises).then(pages => {
+            text = pages.join("\n");
+            extractMCQsFromText(text);
+          });
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function extractMCQsFromText(text) {
+      const regex = /(\d+)\s*[\.)]\s*(.*?)\s+[Aa]\.(.*?)\s+[Bb]\.(.*?)\s+[Cc]\.(.*?)\s+[Dd]\.(.*?)(?=\s+\d+[\.)]|$)/gs;
+      let match, count = 0;
+      while ((match = regex.exec(text)) !== null) {
+        mcqs.push({
+          q: match[2].trim(),
+          a: match[3].trim(),
+          b: match[4].trim(),
+          c: match[5].trim(),
+          d: match[6].trim(),
+          correct: "",
+          tag: "PDF"
+        });
+        count++;
+      }
+      localStorage.setItem("mcqs", JSON.stringify(mcqs));
+      document.getElementById("pdfStatus").innerText = `✅ Imported ${count} MCQs`;
+    }
+
+    switchTab("add");
+  </script>
+</body>
+</html>
