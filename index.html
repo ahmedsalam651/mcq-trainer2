@@ -1,0 +1,226 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Tester - Settings Added</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; background: #f8f8f8; margin: 0; }
+    nav { background: #6200ea; color: white; padding: 10px; text-align: center; }
+    nav button { background: transparent; border: none; color: white; margin: 5px; font-size: 16px; cursor: pointer; }
+    section { display: none; padding: 20px; }
+    .card { background: white; padding: 20px; margin: 20px auto; max-width: 600px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input, button { width: 100%; margin: 10px 0; padding: 10px; font-size: 16px; }
+    ul { list-style: none; padding: 0; }
+    li { background: #fff; margin: 10px 0; padding: 10px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <button onclick="showTab('add')">➕ Add</button>
+    <button onclick="showTab('manage')">📋 Manage</button>
+    <button onclick="showTab('test')">🧪 Test</button>
+    <button onclick="showTab('score')">📊 Score</button>
+    <button onclick="showTab('settings')">⚙️ Settings</button>
+  </nav>
+
+  <section id="add" class="card">
+    <h3>Add/Edit MCQ</h3>
+    <input id="q" placeholder="Question">
+    <input id="a" placeholder="A">
+    <input id="b" placeholder="B">
+    <input id="c" placeholder="C">
+    <input id="d" placeholder="D">
+    <input id="correct" placeholder="Correct answer (A/B/C/D)">
+    <button onclick="saveMCQ()">Save</button>
+  </section>
+
+  <section id="manage" class="card">
+    <h3>Manage MCQs</h3>
+    <ul id="mcqList"></ul>
+  </section>
+
+  <section id="test" class="card">
+    <h3>Test</h3>
+    <button onclick="startTest()">Start Test</button>
+    <div id="testArea" style="display:none;">
+      <p id="questionText"></p>
+      <button onclick="answer('A')" id="btnA"></button>
+      <button onclick="answer('B')" id="btnB"></button>
+      <button onclick="answer('C')" id="btnC"></button>
+      <button onclick="answer('D')" id="btnD"></button>
+      <p id="result"></p>
+      <p id="timerDisplay"></p>
+    </div>
+  </section>
+
+  <section id="score" class="card">
+    <h3>Scores</h3>
+    <ul id="scoreList"></ul>
+  </section>
+
+  <section id="settings" class="card">
+    <h3>Settings</h3>
+    <label>Test Time (seconds):</label>
+    <input type="number" id="testTimer" value="60">
+    <label>Number of Questions:</label>
+    <input type="number" id="testCount" value="5">
+    <button onclick="saveSettings()">Save Settings</button>
+  </section>
+
+  <script>
+    let mcqs = JSON.parse(localStorage.getItem("mcqs") || "[]");
+    let scores = JSON.parse(localStorage.getItem("scores") || "[]");
+    let editIndex = -1;
+    let testSet = [], current = 0, score = 0, wrongIndexes = [];
+    let timerId = null;
+    let remainingTime = 0;
+
+    function showTab(id) {
+      document.querySelectorAll("section").forEach(s => s.style.display = "none");
+      document.getElementById(id).style.display = "block";
+      if (id === "manage") renderMCQs();
+      if (id === "score") renderScores();
+      if (id === "settings") loadSettings();
+    }
+
+    function saveMCQ() {
+      const q = document.getElementById("q").value;
+      const a = document.getElementById("a").value;
+      const b = document.getElementById("b").value;
+      const c = document.getElementById("c").value;
+      const d = document.getElementById("d").value;
+      const correct = document.getElementById("correct").value.toUpperCase();
+      if (!"ABCD".includes(correct)) return alert("Answer must be A/B/C/D");
+      if (editIndex >= 0) {
+        mcqs[editIndex] = { q, a, b, c, d, correct };
+        editIndex = -1;
+      } else {
+        mcqs.push({ q, a, b, c, d, correct });
+      }
+      localStorage.setItem("mcqs", JSON.stringify(mcqs));
+      document.querySelectorAll("#add input").forEach(i => i.value = "");
+    }
+
+    function renderMCQs() {
+      const list = mcqs.map((m, i) => `<li>${m.q}<br>✅ ${m.correct}<br>
+        <button onclick="editMCQ(${i})">✏️ Edit</button>
+        <button onclick="deleteMCQ(${i})">🗑️ Delete</button>
+      </li>`).join("");
+      document.getElementById("mcqList").innerHTML = list;
+    }
+
+    function editMCQ(i) {
+      const m = mcqs[i];
+      document.getElementById("q").value = m.q;
+      document.getElementById("a").value = m.a;
+      document.getElementById("b").value = m.b;
+      document.getElementById("c").value = m.c;
+      document.getElementById("d").value = m.d;
+      document.getElementById("correct").value = m.correct;
+      editIndex = i;
+      showTab("add");
+    }
+
+    function deleteMCQ(i) {
+      mcqs.splice(i, 1);
+      localStorage.setItem("mcqs", JSON.stringify(mcqs));
+      renderMCQs();
+    }
+
+    function loadSettings() {
+      document.getElementById("testTimer").value = localStorage.getItem("testTimer") || 60;
+      document.getElementById("testCount").value = localStorage.getItem("testCount") || 5;
+    }
+
+    function saveSettings() {
+      localStorage.setItem("testTimer", document.getElementById("testTimer").value);
+      localStorage.setItem("testCount", document.getElementById("testCount").value);
+      alert("Settings saved!");
+    }
+
+    function startTest() {
+      const count = parseInt(localStorage.getItem("testCount") || "5");
+      const timerSeconds = parseInt(localStorage.getItem("testTimer") || "60");
+      if (mcqs.length < 1) return alert("Add some MCQs first!");
+      testSet = mcqs.slice(0, count);
+      current = 0; score = 0; wrongIndexes = [];
+      remainingTime = timerSeconds;
+      document.getElementById("testArea").style.display = "block";
+      showQuestion();
+      updateTimer();
+      timerId = setInterval(() => {
+        remainingTime--;
+        updateTimer();
+        if (remainingTime <= 0) finishTest();
+      }, 1000);
+    }
+
+    function updateTimer() {
+      document.getElementById("timerDisplay").innerText = `⏱️ Time Left: ${remainingTime}s`;
+    }
+
+    function showQuestion() {
+      const q = testSet[current];
+      document.getElementById("questionText").innerText = q.q;
+      ["A", "B", "C", "D"].forEach(k => {
+        document.getElementById("btn" + k).innerText = q[k.toLowerCase()];
+      });
+    }
+
+    function answer(k) {
+      const correct = testSet[current].correct;
+      if (k === correct) score++;
+      else wrongIndexes.push(current);
+      current++;
+      if (current >= testSet.length) {
+        finishTest();
+      } else {
+        showQuestion();
+      }
+    }
+
+    function finishTest() {
+      clearInterval(timerId);
+      document.getElementById("result").innerText = `✅ ${score}/${testSet.length}`;
+      scores.push({
+        time: new Date().toLocaleString(),
+        correct: score,
+        total: testSet.length,
+        wrongIndexes,
+        set: testSet
+      });
+      localStorage.setItem("scores", JSON.stringify(scores));
+      document.getElementById("testArea").style.display = "none";
+    }
+
+    function renderScores() {
+      const list = scores.map((s, i) => {
+        const percent = Math.round((s.correct / s.total) * 100);
+        return `<li>
+          <b>${s.time}</b><br>
+          ✔️ ${s.correct}/${s.total} = ${percent}%<br>
+          <button onclick="retestIncorrect(${i})">🔁 Retest Incorrect</button>
+        </li>`;
+      }).join("");
+      document.getElementById("scoreList").innerHTML = list;
+    }
+
+    function retestIncorrect(i) {
+      const s = scores[i];
+      const wrong = s.wrongIndexes.map(j => s.set[j]);
+      if (!wrong.length) return alert("No incorrect answers.");
+      testSet = wrong;
+      current = 0;
+      score = 0;
+      wrongIndexes = [];
+      document.getElementById("testArea").style.display = "block";
+      showQuestion();
+      showTab("test");
+    }
+
+    showTab("add");
+  </script>
+</body>
+</html>
