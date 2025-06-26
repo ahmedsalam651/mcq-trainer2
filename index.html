@@ -1,0 +1,58 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Tester</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <script src="massachusetts-sample.js" defer></script>
+  <script src="app.js" defer></script>
+  <style>
+    body { font-family: sans-serif; margin: 0; background: #f9f9f9; }
+    nav { display: flex; gap: 10px; justify-content: center; background: #1976d2; padding: 10px; flex-wrap: wrap; }
+    nav button { background: white; color: #1976d2; font-weight: bold; padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; }
+    section { display: none; padding: 15px; }
+    section.active { display: block; }
+    .card { background: white; padding: 15px; margin: 10px auto; max-width: 600px; border-radius: 8px; box-shadow: 0 0 5px #ccc; }
+  </style>
+</head>
+<body>
+  <nav>
+    <button onclick="showTab('test')">🧪 Test</button>
+    <button onclick="showTab('score')">📊 Score</button>
+    <button onclick="showTab('manage')">📋 Manage</button>
+    <button onclick="showTab('import')">📄 Import PDF</button>
+  </nav>
+  <section id="test" class="active"><div class="card"><h3>🧪 Test Mode</h3><div id="testArea"></div></div></section>
+  <section id="score"><div class="card"><h3>📊 Score Tracker</h3><ul id="scoreList"></ul></div></section>
+  <section id="manage">
+    <div class="card">
+      <h3>📋 Manage MCQs</h3>
+      <button onclick="showAddForm()">➕ Add MCQ</button>
+      <button onclick="clearAll()">❌ Remove All</button>
+      
+      <div id="addForm" style="display:none; margin-top: 15px; background: #f1f1f1; padding: 15px; border-radius: 8px;">
+        <label>Question:</label><br><textarea id="newQ" rows="3" style="width:100%;"></textarea><br><br>
+        <label>A:</label><br><input id="newA" style="width:100%;"><br><br>
+        <label>B:</label><br><input id="newB" style="width:100%;"><br><br>
+        <label>C:</label><br><input id="newC" style="width:100%;"><br><br>
+        <label>D:</label><br><input id="newD" style="width:100%;"><br><br>
+        <label>Correct Answer (A/B/C/D):</label><br><input id="newCorrect" style="width:100%; font-weight: bold; background: #e3f2fd;"><br><br>
+        <button onclick="addNewMCQ()" style="background:#4caf50;color:white;padding:10px 20px;border:none;border-radius:5px;">✅ Save MCQ</button>
+      </div>
+    
+        <input placeholder="Question" id="newQ"><br>
+        A: <input id="newA"><br>
+        B: <input id="newB"><br>
+        C: <input id="newC"><br>
+        D: <input id="newD"><br>
+        Correct: <input id="newCorrect"><br>
+        <button onclick="addNewMCQ()">✅ Save MCQ</button>
+      </div>
+      <ul id="mcqList"></ul>
+    </div>
+  </section>
+  <section id="import"><div class="card"><h3>📄 Import PDF</h3><input type="file" id="pdfInput"><button onclick="alert('Import supported in local app only')">Read</button></div></section>
+</body>
+</html>
