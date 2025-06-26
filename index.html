@@ -1,0 +1,32 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Tester</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <script src="massachusetts-sample.js" defer></script>
+  <script src="app.js" defer></script>
+  <style>
+    body { font-family: sans-serif; margin: 0; background: #f9f9f9; }
+    nav { display: flex; gap: 10px; justify-content: center; background: #1976d2; padding: 10px; flex-wrap: wrap; }
+    nav button { background: white; color: #1976d2; font-weight: bold; padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; }
+    section { display: none; padding: 15px; }
+    section.active { display: block; }
+    .card { background: white; padding: 15px; margin: 10px auto; max-width: 600px; border-radius: 8px; box-shadow: 0 0 5px #ccc; }
+  </style>
+</head>
+<body>
+  <nav>
+    <button onclick="showTab('test')">🧪 Test</button>
+    <button onclick="showTab('score')">📊 Score</button>
+    <button onclick="showTab('manage')">📋 Manage</button>
+    <button onclick="showTab('import')">📄 Import PDF</button>
+  </nav>
+  <section id="test" class="active"><div class="card"><h3>🧪 Test Mode</h3><div id="testArea"></div></div></section>
+  <section id="score"><div class="card"><h3>📊 Score Tracker</h3><ul id="scoreList"></ul></div></section>
+  <section id="manage"><div class="card"><h3>📋 Manage MCQs</h3><button onclick="clearAll()">❌ Remove All</button><ul id="mcqList"></ul></div></section>
+  <section id="import"><div class="card"><h3>📄 Import PDF</h3><input type="file" id="pdfInput"><button onclick="alert('Import supported in local app only')">Read</button></div></section>
+</body>
+</html>
