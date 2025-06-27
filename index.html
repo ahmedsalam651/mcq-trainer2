@@ -1,0 +1,43 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tester</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <nav>
+    <button onclick="showTab('test')">🧪 Test</button>
+    <button onclick="showTab('score')">📊 Score</button>
+    <button onclick="showTab('manage')">📋 Manage</button>
+  </nav>
+  <section id="test" class="active">
+    <h3>Test</h3>
+    <button onclick="startTest()">▶️ Start Test</button>
+    <div id="testArea"></div>
+  </section>
+  <section id="score">
+    <h3>Scores</h3>
+    <ul id="scoreList"></ul>
+  </section>
+  <section id="manage">
+    <h3>Manage</h3>
+    <button onclick="showAddForm()">➕ Add MCQ</button>
+    <button onclick="clearAll()">❌ Remove All</button>
+    <div id="addForm" style="display:none;">
+      <textarea id="newQ"></textarea>
+      <input id="newA">
+      <input id="newB">
+      <input id="newC">
+      <input id="newD">
+      <input id="newCorrect">
+      <button onclick="addNewMCQ()">✅ Save MCQ</button>
+    </div>
+    <ul id="mcqList"></ul>
+  </section>
+</body>
+</html>
