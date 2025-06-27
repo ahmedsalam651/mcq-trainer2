@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tester Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  <script src="app.js" defer></script>
+  <style>
+    body { margin: 0; font-family: 'Roboto', sans-serif; background: #f0f4f8; color: #333; }
+    nav { display: flex; justify-content: center; background: #1976d2; padding: 14px; gap: 14px; flex-wrap: wrap; }
+    nav button { background: white; color: #1976d2; border: none; padding: 10px 20px; font-weight: 700; border-radius: 24px; cursor: pointer; transition: background 0.2s; }
+    nav button:hover { background: #e3f2fd; }
+    section { display: none; padding: 20px; }
+    section.active { display: block; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); max-width: 700px; margin: 30px auto; padding: 24px; }
+    textarea, input { width: 100%; padding: 10px 14px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; }
+    button { background: #4caf50; color: white; border: none; padding: 10px 20px; font-weight: 700; border-radius: 24px; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #43a047; }
+    #searchBox { padding: 10px 14px; border-radius: 24px; border: 1px solid #aaa; width: 100%; box-sizing: border-box; }
+    ul { list-style: none; padding: 0; }
+    ul li { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 12px; margin: 10px 0; }
+    progress { width: 100%; height: 20px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <button onclick="showTab('test')">🧪 Test</button>
+    <button onclick="showTab('score')">📊 Score</button>
+    <button onclick="showTab('manage')">📋 Manage</button>
+    <button onclick="showTab('settings')">⚙️ Settings</button>
+  </nav>
+  <section id="test" class="active">
+    <div class="card">
+      <h3>🧪 Test Mode</h3>
+      <label><input type="checkbox" id="shuffleQuestions"> Shuffle Questions</label><br>
+      <label>How many MCQs: </label><input id="mcqCount" type="number" min="1" style="width:60px"><br>
+      <button onclick="startTest()">▶️ Start Test</button>
+      <div id="progressBar" style="margin:10px 0;"></div>
+      <div id="testArea"></div>
+    </div>
+  </section>
+  <section id="score">
+    <div class="card">
+      <h3>📊 Scores</h3>
+      <ul id="scoreList"></ul>
+    </div>
+  </section>
+  <section id="manage">
+    <div class="card">
+      <h3>📋 Manage MCQs</h3>
+      <input id="searchBox" placeholder="Search MCQs..." oninput="searchMCQs()"><br><br>
+      <button onclick="showAddForm()">➕ Add MCQ</button>
+      <button onclick="clearAll()">❌ Remove All</button>
+      <div id="addForm" style="display:none;">
+        <textarea id="newQ" placeholder="Question"></textarea>
+        <input id="newA" placeholder="Option A">
+        <input id="newB" placeholder="Option B">
+        <input id="newC" placeholder="Option C">
+        <input id="newD" placeholder="Option D">
+        <input id="newCorrect" placeholder="Correct Answer (A/B/C/D)">
+        <input id="newTag" placeholder="Tag/Topic">
+        <button onclick="addNewMCQ()">✅ Save MCQ</button>
+      </div>
+      <ul id="mcqList"></ul>
+    </div>
+  </section>
+  <section id="settings">
+    <div class="card">
+      <h3>⚙️ Settings</h3>
+      <label>Default Test Time (minutes):</label><br>
+      <input id="timeSetting" type="number" min="1" value="5"><br><br>
+      <button onclick="saveSettings()">💾 Save Settings</button>
+      <hr>
+      <button onclick="clearScores()">❌ Remove All Scores</button>
+    </div>
+  </section>
+</body>
+</html>
