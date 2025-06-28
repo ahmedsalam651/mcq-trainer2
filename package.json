@@ -1,0 +1,18 @@
+{
+  "name": "mcq-quiz-pwa",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "parcel public/index.html --port 1234",
+    "build": "parcel build public/index.html --public-url ./"
+  },
+  "dependencies": {
+    "mammoth": "^1.6.0",
+    "pdfjs-dist": "^3.9.179",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "parcel": "^2.9.3"
+  }
+}
