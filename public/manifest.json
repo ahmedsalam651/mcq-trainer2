@@ -4,9 +4,17 @@
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",
-  "description": "MCQ Quiz Progressive Web App",
+  "description": "An offline MCQ quiz app with daily reminders and retry for wrong answers.",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
