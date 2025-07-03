@@ -33,11 +33,12 @@ export default function Quiz() {
     setFinished(true);
   };
 
-  if (qs.length === 0) return <p>No questions found! Upload first.</p>;
+  if (qs.length === 0) return <p>No questions found. Please upload MCQs first!</p>;
 
   if (finished || index >= qs.length) {
     let wrongQs = [];
     let score = 0;
+
     qs.forEach((q, i) => {
       if (answers[i] === q.correct) {
         score++;
@@ -59,7 +60,7 @@ export default function Quiz() {
         <h2>Quiz Finished!</h2>
         <p>Score: {score} / {qs.length}</p>
         <p>{wrongQs.length} wrong answers saved for retry.</p>
-        <button onClick={() => window.location.reload()}>Retry</button>
+        <button onClick={() => window.location.reload()}>Take Another Quiz</button>
       </div>
     );
   }
@@ -76,15 +77,12 @@ export default function Quiz() {
               type="radio"
               checked={answers[index] === o.label}
               onChange={() => choose(o.label)}
-            />
-            {o.label}. {o.text}
+            /> {o.label}. {o.text}
           </label>
         </div>
       ))}
-      <div>
-        <button onClick={() => setIndex(i => i + 1)}>Next</button>
-        <button onClick={submit}>Finish</button>
-      </div>
+      <button onClick={() => setIndex(i => i + 1)}>Next</button>
+      <button onClick={submit}>Finish</button>
     </div>
   );
 }
