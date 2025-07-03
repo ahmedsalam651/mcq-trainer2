@@ -11,15 +11,15 @@ export default function Retry() {
     getWrong().then(setQs);
   }, []);
 
-  if (qs.length === 0) return <p>No wrong questions found!</p>;
+  if (qs.length === 0) return <p>No wrong questions found! 🎉</p>;
+
+  const choose = label => {
+    setAnswers({ ...answers, [index]: label });
+  };
 
   const submit = () => {
     setFinished(true);
     clearWrong();
-  };
-
-  const choose = label => {
-    setAnswers({ ...answers, [index]: label });
   };
 
   if (finished || index >= qs.length) {
@@ -38,8 +38,7 @@ export default function Retry() {
   const q = qs[index];
   return (
     <div>
-      <h3>Retry: {index + 1}</h3>
-      <p>{q.question}</p>
+      <p>{index + 1}. {q.question}</p>
       {q.options.map(o => (
         <div key={o.label}>
           <label>
@@ -47,15 +46,12 @@ export default function Retry() {
               type="radio"
               checked={answers[index] === o.label}
               onChange={() => choose(o.label)}
-            />
-            {o.label}. {o.text}
+            /> {o.label}. {o.text}
           </label>
         </div>
       ))}
-      <div>
-        <button onClick={() => setIndex(i => i + 1)}>Next</button>
-        <button onClick={submit}>Finish Retry</button>
-      </div>
+      <button onClick={() => setIndex(i => i + 1)}>Next</button>
+      <button onClick={submit}>Finish Retry</button>
     </div>
   );
 }
